@@ -6,7 +6,7 @@ import type { Lot } from "../../types";
 import { useLots } from "../../hooks/useLots";
 import { formatWeight } from "../../utils/format";
 
-type QueueFilter = "To grade" | "Graded and ready" | "Sent to hub";
+type QueueFilter = "To grade" | "Graded and ready" | "Sent to hub" | "Open to buyers";
 
 const lotCodes: Record<string, string> = {
   lemon: "DM-2411",
@@ -17,24 +17,27 @@ const lotCodes: Record<string, string> = {
 function matchesFilter(lot: Lot, filter: QueueFilter): boolean {
   if (filter === "To grade") return lot.status === "At spoke" || lot.grade === "Pending";
   if (filter === "Graded and ready") return lot.status === "Graded";
-  return lot.status === "In transit" || lot.status === "At hub" || lot.status === "Open for bids" || lot.status === "Sold";
+  if (filter === "Open to buyers") return lot.status === "Open for bids";
+  return lot.status === "In transit" || lot.status === "At hub" || lot.status === "Verified" || lot.status === "Sold";
 }
 
 function statusLabel(lot: Lot): string {
   if (lot.status === "At spoke" || lot.grade === "Pending") return "At Spoke waiting for grading";
   if (lot.status === "Graded") return "Graded and ready";
   if (lot.status === "In transit") return "Sent to hub";
-  if (lot.status === "At hub" || lot.status === "Open for bids") return "At hub";
+  if (lot.status === "Open for bids") return "Open to buyers";
+  if (lot.status === "At hub" || lot.status === "Verified") return "At hub";
   return "Completed";
 }
 
 export default function SpokeDashboard() {
   const { user } = useAuth();
-  const { lots, gradeLot, addLot } = useLots();
+  const { lots, gradeLot, addLot, updateLotStatus } = useLots();
   const queueCounts = {
     toGrade: lots.filter((lot) => matchesFilter(lot, "To grade")).length,
     ready: lots.filter((lot) => lot.status === "Graded").length,
     sent: lots.filter((lot) => matchesFilter(lot, "Sent to hub")).length,
+    openToBuyers: lots.filter((lot) => matchesFilter(lot, "Open to buyers")).length,
   };
   const [filter, setFilter] = useState<QueueFilter>("To grade");
   const [showAllLots, setShowAllLots] = useState(false);
@@ -116,6 +119,22 @@ export default function SpokeDashboard() {
     setNotice(`${newCrop.trim()} added to the grading queue.`);
   }
 
+  function handleOpenForBids(lot: Lot) {
+    if (lot.status !== "Graded") return;
+    updateLotStatus(lot.id, "Open for bids", 4);
+    setFilter("Open to buyers");
+    setShowAllLots(false);
+    setNotice(`${lot.crop} is now open for buyers to bid.`);
+  }
+
+  function handleSendToHub(lot: Lot) {
+    if (lot.status !== "Graded") return;
+    updateLotStatus(lot.id, "In transit", 3);
+    setFilter("Sent to hub");
+    setShowAllLots(false);
+    setNotice(`${lot.crop} has been sent to ${lot.destination}.`);
+  }
+
   return (
     <section className="page-container spoke-dashboard">
       <div className="spoke-title-row">
@@ -138,7 +157,7 @@ export default function SpokeDashboard() {
           <span>Ready to dispatch</span><strong>{formatWeight(lots.filter((lot) => lot.status === "Graded").reduce((total, lot) => total + lot.weightKg, 0))}</strong><small>{queueCounts.ready} lots</small><span className="spoke-stat-icon" aria-hidden="true">◇</span>
         </article>
         <article className="spoke-stat-card">
-          <span>Graded stock in kg</span><strong>{formatWeight(lots.filter((lot) => ["Graded", "In transit", "At hub", "Open for bids"].includes(lot.status)).reduce((total, lot) => total + lot.weightKg, 0))}</strong><small>in the supply chain</small><span className="spoke-stat-icon" aria-hidden="true">✓</span>
+          <span>Graded stock in kg</span><strong>{formatWeight(lots.filter((lot) => ["Graded", "In transit", "At hub", "Verified", "Open for bids"].includes(lot.status)).reduce((total, lot) => total + lot.weightKg, 0))}</strong><small>in the supply chain</small><span className="spoke-stat-icon" aria-hidden="true">✓</span>
         </article>
       </div>
 
@@ -149,6 +168,7 @@ export default function SpokeDashboard() {
             ["To grade", queueCounts.toGrade],
             ["Graded and ready", queueCounts.ready],
             ["Sent to hub", queueCounts.sent],
+            ["Open to buyers", queueCounts.openToBuyers],
           ] as const).map(([label, count]) => (
             <button
               aria-pressed={filter === label}
@@ -160,7 +180,7 @@ export default function SpokeDashboard() {
               }}
               type="button"
             >
-              {label}{label === "To grade" && <strong>{count}</strong>}
+              {label}{(label === "To grade" || label === "Open to buyers") && <strong>{count}</strong>}
             </button>
           ))}
         </div>
@@ -193,6 +213,11 @@ export default function SpokeDashboard() {
                   <td>
                     {lot.status === "At spoke" || lot.grade === "Pending"
                       ? <button className="spoke-grade-button" onClick={(event) => { event.stopPropagation(); selectLot(lot); }} type="button">Grade lot ›</button>
+                      : lot.status === "Graded"
+                        ? <span className="spoke-row-actions">
+                            <button className="spoke-grade-button" onClick={(event) => { event.stopPropagation(); handleSendToHub(lot); }} type="button">Send to hub</button>
+                            <button className="spoke-row-action-secondary" onClick={(event) => { event.stopPropagation(); handleOpenForBids(lot); }} type="button">Open to buyers</button>
+                          </span>
                       : <Link className="spoke-view-link" onClick={(event) => event.stopPropagation()} to={`/spoke/lots/${lot.id}/grade`}>View lot ›</Link>}
                   </td>
                 </tr>
@@ -242,8 +267,14 @@ export default function SpokeDashboard() {
               {formError && <p className="form-error" role="alert">{formError}</p>}
             </div>
             <div className="spoke-save-column">
-              <div className="spoke-price-note"><small>Listing after save</small><strong>₹{selectedLot.bids.length ? Math.max(...selectedLot.bids.map((bid) => bid.pricePerKg)) : 48}/kg starting bid</strong><span>Buyers can bid once the lot is listed.</span></div>
-              <button className="button-primary spoke-save-button" type="submit">⇧ &nbsp; Save grade and list lot</button>
+              <div className="spoke-price-note"><small>Suggested starting bid</small><strong>₹{selectedLot.bids.length ? Math.max(...selectedLot.bids.map((bid) => bid.pricePerKg)) : 48}/kg</strong><span>Open the graded lot when it is ready for buyers.</span></div>
+              <button className="button-primary spoke-save-button" type="submit">⇧ &nbsp; Save grade and ready for hub</button>
+              {selectedLot.status === "Graded" && (
+                <>
+                  <button className="button-secondary spoke-save-button" onClick={() => handleSendToHub(selectedLot)} type="button">Send to hub</button>
+                  <button className="button-secondary spoke-save-button" onClick={() => handleOpenForBids(selectedLot)} type="button">Open lot to buyers for bidding</button>
+                </>
+              )}
             </div>
           </div>
         </form>

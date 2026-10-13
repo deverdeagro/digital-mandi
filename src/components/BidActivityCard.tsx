@@ -4,7 +4,9 @@ import { useLots } from "../hooks/useLots";
 export default function SpokeBidActivityCard({ type = "spoke" }: { type?: "spoke" | "hub" }) {
   const { lots } = useLots();
   const bids = useMemo(() => lots
-    .filter((lot) => lot.status === "Open for bids" && (type === "hub" || lot.origin.toLowerCase().includes("diphu")))
+    .filter((lot) => lot.status === "Open for bids" && (type === "hub"
+      ? lot.destination.toLowerCase().includes("karbi")
+      : lot.origin.toLowerCase().includes("diphu")))
     .flatMap((lot) => lot.bids.map((bid) => ({ ...bid, crop: lot.crop })))
     .sort((left, right) => right.pricePerKg - left.pricePerKg), [lots, type]);
   const topBids = bids.slice(0, 3);
@@ -15,7 +17,7 @@ export default function SpokeBidActivityCard({ type = "spoke" }: { type?: "spoke
       <div className="spoke-bid-activity-heading">
         <div>
           <p className="eyebrow">{type === "hub" ? "HUB BID ACTIVITY" : "SPOKE BID ACTIVITY"}</p>
-          <h2 id={titleId}>{type === "hub" ? "Buyer bids on hub lots" : "Buyer bids on Diphu lots"}</h2>
+          <h2 id={titleId}>{type === "hub" ? "Buyer bids on Karbi Hub lots" : "Buyer bids on Diphu lots"}</h2>
         </div>
         <strong>{bids.length} buyer bids</strong>
       </div>
@@ -38,7 +40,7 @@ export default function SpokeBidActivityCard({ type = "spoke" }: { type?: "spoke
           })}
         </div>
       ) : (
-        <p className="empty-state">No buyer bids have been placed on {type === "hub" ? "hub" : "Diphu"} lots yet.</p>
+        <p className="empty-state">No buyer bids have been placed on {type === "hub" ? "Karbi Hub" : "Diphu"} lots yet.</p>
       )}
     </section>
   );

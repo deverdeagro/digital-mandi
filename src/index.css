@@ -916,6 +916,26 @@ button {
   text-decoration: none;
 }
 
+.spoke-row-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.spoke-row-action-secondary {
+  min-height: 27px;
+  padding: 0 8px;
+  border: 1px solid #d5e3cf;
+  border-radius: 8px;
+  background: #fff;
+  color: #426b3b;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .spoke-empty-row {
   height: 56px !important;
   color: #718078 !important;
@@ -3650,8 +3670,25 @@ button {
 
 .hub-location-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
+}
+
+.hub-summary-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  padding: 12px 0;
+  border-top: 1px solid #e3e9df;
+  border-bottom: 1px solid #e3e9df;
+  color: #74847e;
+  font-size: 12px;
+}
+
+.hub-summary-line strong {
+  margin-right: 4px;
+  color: #263a30;
+  font-size: 14px;
 }
 
 .hub-location-card {
@@ -3661,7 +3698,7 @@ button {
   border: 1px solid #d5e3cf;
   border-radius: 15px;
   background: #fff;
-  cursor: pointer;
+  cursor: default;
   text-align: left;
   transition: border-color 120ms ease, box-shadow 120ms ease;
 }

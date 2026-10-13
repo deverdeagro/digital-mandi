@@ -68,7 +68,7 @@ export default function BuyerMarket() {
       <div aria-label="Marketplace summary" className="dashboard-stats buyer-stats">
         <article><strong>{marketLots.length}</strong><span>Open lots</span></article>
         <article><strong>{myBids.length}</strong><span>Active bids</span></article>
-        <article><strong>{lots.filter((lot) => lot.status === "At hub" || lot.status === "Open for bids" || lot.status === "Sold").length}</strong><span>Stored</span></article>
+        <article><strong>{lots.filter((lot) => lot.status === "At hub" || lot.status === "Verified" || lot.status === "Open for bids" || lot.status === "Sold").length}</strong><span>Stored</span></article>
       </div>
 
       <nav aria-label="Browse lots and bids" className="dashboard-tabs buyer-tabs">

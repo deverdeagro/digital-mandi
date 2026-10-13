@@ -1,15 +1,12 @@
 import { NavLink, Link } from "react-router-dom";
 import LotTracker from "../../components/LotTracker";
 import StatusChip from "../../components/StatusChip";
-import { useAuth } from "../../hooks/useAuth";
 import { useLots } from "../../hooks/useLots";
 import { formatPrice, formatWeight } from "../../utils/format";
 import FarmerGreeting from "./components/FarmerGreeting";
 
 export default function FarmerDashboard() {
   const { lots } = useLots();
-  const { user } = useAuth();
-  const activeDiscrepancies = lots.filter((lot) => lot.farmer === user?.name && lot.weightDiscrepancy?.requiresReview);
   const openLots = lots.filter((lot) => lot.status === "Open for bids" || lot.status === "In transit").length;
   const bidCount = lots.reduce((total, lot) => total + lot.bids.length, 0);
 
@@ -25,31 +22,6 @@ export default function FarmerDashboard() {
         <NavLink className={({ isActive }) => `dashboard-tab${isActive ? " selected" : ""}`} end to="/farmer">My lots</NavLink>
         <NavLink className={({ isActive }) => `dashboard-tab${isActive ? " selected" : ""}`} to="/farmer/bids?lot=lemon">Bids <strong>{bidCount}</strong></NavLink>
       </nav>
-      {activeDiscrepancies.length > 0 && (
-        <section aria-label="Weight discrepancy notifications" className="farmer-weight-notifications" role="status">
-          {activeDiscrepancies.map((lot) => {
-            const discrepancy = lot.weightDiscrepancy;
-            if (!discrepancy) return null;
-
-            return (
-              <article className="farmer-weight-notification" key={lot.id}>
-                <div className="farmer-weight-notification-heading">
-                  <strong>Weight discrepancy detected</strong>
-                  <span>Review required</span>
-                </div>
-                <p>
-                  Your {lot.crop} lot {lot.id.toUpperCase()} has a weight discrepancy between the Spoke and Hub measurements.
-                  Spoke weight: {formatWeight(discrepancy.spokeWeightKg)}. Hub weight: {formatWeight(discrepancy.hubWeightKg)}.
-                  Difference: {formatWeight(discrepancy.differenceKg)} ({discrepancy.percentage.toFixed(2)}%).
-                  The lot has been flagged for review.
-                </p>
-                <a href={`#lot-${lot.id}`}>Review lot details</a>
-              </article>
-            );
-          })}
-          <small>Prototype notification — this demo does not save lot updates across reloads or devices.</small>
-        </section>
-      )}
       <div className="lots-list">
         {lots.map((lot) => (
           <article className="lot-card farmer-lot-card" id={`lot-${lot.id}`} key={lot.id}>
@@ -65,11 +37,8 @@ export default function FarmerDashboard() {
               <button aria-label={`${lot.crop} lot options`} className="lot-menu" type="button">•••</button>
             </div>
             <p className="lot-meta"><span className="farmer-lot-id">{lot.id.toUpperCase()}</span><span>·</span>{formatWeight(lot.weightKg)}<span>·</span>{lot.origin}</p>
-            {lot.farmer === user?.name && lot.weightDiscrepancy && !lot.weightDiscrepancy.requiresReview && (
-              <p className="farmer-weight-resolved">Weight check resolved · within 2% of the Spoke measurement.</p>
-            )}
             <StatusChip
-              label={lot.status === "Open for bids" ? "Graded and open for bids" : lot.status === "In transit" ? "On the way to hub" : "Verified and stored"}
+              label={lot.status === "Open for bids" ? "Graded and open for bids" : lot.status === "In transit" ? "On the way to hub" : lot.status === "Verified" ? "Verified and stored" : lot.status}
               status={lot.status}
             />
             <LotTracker stage={lot.stage} />

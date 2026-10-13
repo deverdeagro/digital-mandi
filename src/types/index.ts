@@ -11,6 +11,7 @@ export type LotStatus =
   | "Graded"
   | "In transit"
   | "At hub"
+  | "Verified"
   | "Open for bids"
   | "Sold";
 

@@ -35,7 +35,7 @@ export default function LotsProvider({ children }: { children: ReactNode }) {
         spokeWeightKg,
         hubWeightKg: weightKg,
         destination,
-        status: "Open for bids",
+        status: "Verified",
         stage: 3,
         ...(weightDiscrepancy ? { weightDiscrepancy } : { weightDiscrepancy: undefined }),
       };
